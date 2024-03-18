@@ -5,11 +5,13 @@ import torch
 import torchsparse.backend
 from torchsparse.nn import functional as F
 from torchsparse.nn.utils import get_kernel_offsets
-from torchsparse.utils import make_ntuple
+from torchsparse.utils import make_ntuple, timing_decorator
 
 __all__ = ['build_kernel_map']
 
+total_kmap_time = 0
 
+@timing_decorator('total_kmap_time')
 def build_kernel_map(_coords: torch.Tensor,
                      kernel_size: Union[int, Tuple[int, ...]] = 2,
                      stride: Union[int, Tuple[int, ...]] = 2,
@@ -63,10 +65,14 @@ def build_kernel_map(_coords: torch.Tensor,
                                         + nbmaps[:, 1]]
         # important for build masks
         nbmaps = nbmaps.contiguous()
-        input_mask, output_mask = torchsparse.backend.build_mask_from_kmap(
-            _coords.shape[0], coords.shape[0], nbmaps.int(), nbsizes.int())
+        # input_mask, output_mask = torchsparse.backend.build_mask_from_kmap(
+        #     _coords.shape[0], coords.shape[0], nbmaps.int(), nbsizes.int())
+
+        # we undo the mask building since we need to run CPU-only inference
 
         if any(s > 1 for s in stride):
-            return nbmaps, nbsizes, coords, input_mask, output_mask
+            # return nbmaps, nbsizes, coords, input_mask, output_mask
+            return nbmaps, nbsizes, coords
         else:
-            return nbmaps, nbsizes, input_mask, output_mask
+            # return nbmaps, nbsizes, input_mask, output_mask
+            return nbmaps, nbsizes

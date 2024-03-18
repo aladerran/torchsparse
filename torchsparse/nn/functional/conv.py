@@ -8,17 +8,19 @@ import torchsparse
 import torchsparse.backend
 from torchsparse import SparseTensor
 from torchsparse.nn import functional as F
-from torchsparse.utils import make_ntuple
+from torchsparse.utils import make_ntuple, timing_decorator
 
 buffer = torch.Tensor()
 
 __all__ = ['conv3d']
 
+total_conv3d_time = 0
 
 class ConvolutionFunction(Function):
 
     @staticmethod
     @custom_fwd(cast_inputs=torch.half)
+    @timing_decorator('total_conv3d_time')
     def forward(
         ctx,
         input: torch.Tensor,

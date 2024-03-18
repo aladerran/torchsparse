@@ -3,11 +3,13 @@ from typing import Tuple, Union
 import torch
 
 import torchsparse.backend
-from torchsparse.utils import make_ntuple
+from torchsparse.utils import make_ntuple, timing_decorator
 
 __all__ = ['spdownsample']
 
+total_downsample_time = 0
 
+# @timing_decorator('total_downsample_time')
 def spdownsample(
         coords: torch.Tensor,
         stride: Union[int, Tuple[int, ...]] = 2,
@@ -41,4 +43,17 @@ def spdownsample(
                 tensor_stride)[:, [1, 2, 3, 0]]
             return out_coords
         else:
-            raise NotImplementedError
+            # our version of downsampling on CPU, may need to be optimized
+            coords = coords[:, [3, 0, 1, 2]]  # Reorder coordinates to [batch, x, y, z]
+            # Compute downsampled coordinates
+            downsampled_coords = torch.floor_divide(coords[:, 1:], sample_stride) * sample_stride
+            # Reassemble the downsampled coordinates with their batch indices
+            downsampled_coords = torch.cat((coords[:, :1], downsampled_coords), dim=1)
+            # Remove duplicates
+            _, unique_indices = torch.unique(downsampled_coords, dim=0, return_inverse=True)
+            downsampled_coords = downsampled_coords[torch.sort(unique_indices).indices]
+
+            # Reorder coordinates back to original order [x, y, z, batch]
+            downsampled_coords = downsampled_coords[:, [1, 2, 3, 0]]
+            return downsampled_coords
+            

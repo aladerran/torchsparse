@@ -5,11 +5,35 @@ from torch import nn
 from torchsparse import SparseTensor
 from torchsparse.backbones import SparseResNet21D, SparseResUNet42
 from torchsparse.utils.quantize import sparse_quantize
+from torchsparse.utils import TimingManager
+
+import time
+from torchsparse.nn.functional.conv import total_conv3d_time
+from torchsparse.nn.modules.norm import total_norm_time
+from torchsparse.nn.functional.query import total_query_time
+from torchsparse.nn.functional.activation import total_relu_time
+from torchsparse.nn.functional.hash import total_hash_time
+from torchsparse.nn.functional.downsample import total_downsample_time
+
+import os
+
+def set_affinity(core_id):
+    os.sched_setaffinity(0, {core_id})
+
+set_affinity(0) # Set the affinity to core 0
+
+current_dir = os.path.dirname(os.path.realpath(__file__))
+output_dir = os.path.join(current_dir, 'output')
+
+if not os.path.exists(output_dir):
+    os.makedirs(output_dir)
+
 
 
 @torch.no_grad()
 def main() -> None:
-    device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+    # device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+    device = 'cpu'
 
     for backbone in [SparseResNet21D, SparseResUNet42]:
         print(f'{backbone.__name__}:')
@@ -29,12 +53,24 @@ def main() -> None:
         feats = torch.as_tensor(feats[indices], dtype=torch.float)
         input = SparseTensor(coords=coords, feats=feats).to(device)
 
+        start_time = time.perf_counter()
         # forward
         outputs = model(input)
+        end_time = time.perf_counter()
+        print(f"Execution Time: {(end_time - start_time) * 1000} ms")
+
+        # export outputs
+        for k, output in enumerate(outputs):  
+            np.savetxt(f'{output_dir}/out_coords.csv', output.coords.cpu().numpy(), delimiter=',', fmt='%d')
+            np.savetxt(f'{output_dir}/out_feats.csv', output.feats.cpu().numpy(), delimiter=',', fmt='%f')
 
         # print feature shapes
         for k, output in enumerate(outputs):
             print(f'output[{k}].F.shape = {output.feats.shape}')
+
+        # print profiling info
+        TimingManager.print_times()
+        TimingManager.reset_times()
 
 
 if __name__ == '__main__':

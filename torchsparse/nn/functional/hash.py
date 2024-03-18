@@ -4,9 +4,13 @@ import torch
 
 import torchsparse.backend
 
+from torchsparse.utils import timing_decorator
+
 __all__ = ['sphash']
 
+total_hash_time = 0
 
+# @timing_decorator('total_hash_time')
 def sphash(coords: torch.Tensor,
            offsets: Optional[torch.Tensor] = None) -> torch.Tensor:
     assert coords.dtype == torch.int, coords.dtype

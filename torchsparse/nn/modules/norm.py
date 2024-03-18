@@ -4,11 +4,15 @@ from torch import nn
 from torchsparse import SparseTensor
 from torchsparse.nn.utils import fapply
 
+from torchsparse.utils import timing_decorator
+
 __all__ = ['BatchNorm', 'GroupNorm']
 
+total_norm_time = 0
 
 class BatchNorm(nn.BatchNorm1d):
-
+    
+    @timing_decorator('total_norm_time')
     def forward(self, input: SparseTensor) -> SparseTensor:
         return fapply(input, super().forward)
 
