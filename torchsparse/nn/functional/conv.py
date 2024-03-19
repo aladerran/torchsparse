@@ -14,13 +14,13 @@ buffer = torch.Tensor()
 
 __all__ = ['conv3d']
 
-total_conv3d_time = 0
+total_conv3d_forward_time = 0
 
 class ConvolutionFunction(Function):
 
     @staticmethod
     @custom_fwd(cast_inputs=torch.half)
-    @timing_decorator('total_conv3d_time')
+    @timing_decorator('total_conv3d_forward_time')
     def forward(
         ctx,
         input: torch.Tensor,

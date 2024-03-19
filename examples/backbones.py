@@ -8,13 +8,6 @@ from torchsparse.utils.quantize import sparse_quantize
 from torchsparse.utils import TimingManager
 
 import time
-from torchsparse.nn.functional.conv import total_conv3d_time
-from torchsparse.nn.modules.norm import total_norm_time
-from torchsparse.nn.functional.query import total_query_time
-from torchsparse.nn.functional.activation import total_relu_time
-from torchsparse.nn.functional.hash import total_hash_time
-from torchsparse.nn.functional.downsample import total_downsample_time
-
 import os
 
 def set_affinity(core_id):
@@ -41,7 +34,7 @@ def main() -> None:
         model = model.to(device).eval()
 
         # generate data
-        input_size, voxel_size = 10000, 0.2
+        input_size, voxel_size = 1000, 0.2
         inputs = np.random.uniform(-100, 100, size=(input_size, 4))
         pcs, feats = inputs[:, :3], inputs
         pcs -= np.min(pcs, axis=0, keepdims=True)
@@ -60,9 +53,9 @@ def main() -> None:
         print(f"Execution Time: {(end_time - start_time) * 1000} ms")
 
         # export outputs
-        for k, output in enumerate(outputs):  
-            np.savetxt(f'{output_dir}/out_coords.csv', output.coords.cpu().numpy(), delimiter=',', fmt='%d')
-            np.savetxt(f'{output_dir}/out_feats.csv', output.feats.cpu().numpy(), delimiter=',', fmt='%f')
+        for k, output in enumerate(outputs):
+            np.savetxt(f'{output_dir}/out_coords_{backbone.__name__}.csv', output.coords.cpu().numpy(), delimiter=',', fmt='%d')
+            np.savetxt(f'{output_dir}/out_feats_{backbone.__name__}.csv', output.feats.cpu().numpy(), delimiter=',', fmt='%f')
 
         # print feature shapes
         for k, output in enumerate(outputs):
