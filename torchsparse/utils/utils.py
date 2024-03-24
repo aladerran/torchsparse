@@ -2,9 +2,12 @@ from itertools import repeat
 from typing import List, Tuple, Union
 
 import torch
+import numpy as np
 
 from functools import wraps
 import time
+
+import torchsparse.backend
 
 __all__ = ['make_ntuple', 'timing_decorator', 'TimingManager']
 
@@ -21,6 +24,8 @@ def make_ntuple(x: Union[int, List[int], Tuple[int, ...], torch.Tensor],
     assert isinstance(x, tuple) and len(x) == ndim, x
     return x
 
+def make_tensor(x: Tuple[int, ...], dtype: torch.dtype, device) -> torch.Tensor:
+    return torch.tensor(x, dtype=dtype, device=device)
 
 class TimingManager:
     times = {}
@@ -54,6 +59,9 @@ class TimingManager:
             cls.times[name] = 0.0
         for name in list(cls.counts.keys()): 
             cls.counts[name] = 0
+    
+    def print_backend_profiling_stats():
+        torchsparse.backend.print_convolution_forward_time_stats()
 
 def timing_decorator(action_name):
     def decorator(func):

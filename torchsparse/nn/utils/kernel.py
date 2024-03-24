@@ -3,11 +3,13 @@ from typing import Tuple, Union
 import numpy as np
 import torch
 
-from torchsparse.utils import make_ntuple
+from torchsparse.utils import make_ntuple, timing_decorator
 
 __all__ = ['get_kernel_offsets']
 
+total_offsets_time = 0
 
+@timing_decorator('total_offsets_time')
 def get_kernel_offsets(size: Union[int, Tuple[int, ...]],
                        stride: Union[int, Tuple[int, ...]] = 1,
                        dilation: Union[int, Tuple[int, ...]] = 1,

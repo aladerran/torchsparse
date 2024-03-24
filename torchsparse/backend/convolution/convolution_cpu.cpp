@@ -5,6 +5,10 @@
 #include <algorithm>
 #include <chrono>
 
+static std::chrono::duration<double, std::milli> total_gather_time(0);
+static std::chrono::duration<double, std::milli> total_mm_out_time(0);
+static std::chrono::duration<double, std::milli> total_scatter_time(0);
+
 void scatter_cpu(const int n_in, const int n_out, const int c,
                  const float *in_feat, float *out_feat, const int *kmap,
                  const bool transpose) {
@@ -13,7 +17,7 @@ void scatter_cpu(const int n_in, const int n_out, const int c,
     if (out_pos < 0) {
       continue;
     }
-#pragma omp parallel for
+// #pragma omp parallel for
     for (int j = 0; j < c; j++) {
       out_feat[out_pos * c + j] += in_feat[i * c + j];
     }
@@ -28,7 +32,7 @@ void gather_cpu(const int n_k, const int n_in, const int c,
     if (in_pos < 0) {
       continue;
     }
-#pragma omp parallel for
+// #pragma omp parallel for
     for (int j = 0; j < c; j++) {
       out_feat[i * c + j] = in_feat[in_pos * c + j];
     }
@@ -92,18 +96,28 @@ void convolution_forward_cpu(at::Tensor in_feat, at::Tensor out_feat,
         {neighbor_offset.data_ptr<int>()[i], in_feat.size(1)}, options);
 
     // gather
+    auto gather_start = std::chrono::high_resolution_clock::now();
     gather_cpu(in_buffer_activated.size(0), in_feat.size(0), kernel.size(1),
                in_feat.data_ptr<float>(), in_buffer_activated.data_ptr<float>(),
                neighbor_map.data_ptr<int>() + cur_offset, transpose);
+    auto gather_end = std::chrono::high_resolution_clock::now();
+    total_gather_time += gather_end - gather_start;
 
     // matmul
+    auto matmul_start = std::chrono::high_resolution_clock::now();
     torch::mm_out(out_buffer_activated, in_buffer_activated, kernel[i]);
+    auto matmul_end = std::chrono::high_resolution_clock::now();
+    total_mm_out_time += matmul_end - matmul_start;
 
     // scatter
+    auto scatter_start = std::chrono::high_resolution_clock::now();
     scatter_cpu(neighbor_offset.data_ptr<int>()[i], out_nrows, kernel.size(2),
                 out_buffer_activated.data_ptr<float>(),
                 out_feat.data_ptr<float>(),
                 neighbor_map.data_ptr<int>() + cur_offset, transpose);
+    auto scatter_end = std::chrono::high_resolution_clock::now();
+    total_scatter_time += scatter_end - scatter_start;
+
     cur_offset += 2 * neighbor_offset.data_ptr<int>()[i];
   }
 }
@@ -180,4 +194,10 @@ void convolution_backward_cpu(at::Tensor in_feat, at::Tensor grad_in_feat,
 
     cur_offset += 2 * neighbor_offset.data_ptr<int>()[i];
   }
+}
+
+void print_convolution_forward_time_stats() {
+  std::cout << "Gather time: " << total_gather_time.count() << " ms" << std::endl;
+  std::cout << "Matmul time: " << total_mm_out_time.count() << " ms" << std::endl;
+  std::cout << "Scatter time: " << total_scatter_time.count() << " ms" << std::endl;
 }

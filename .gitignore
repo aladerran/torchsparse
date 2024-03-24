@@ -2,3 +2,4 @@
 build/
 *.pyc
 torchsparse.egg-info/
+examples/output/

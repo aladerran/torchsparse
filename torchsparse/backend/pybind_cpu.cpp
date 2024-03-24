@@ -20,4 +20,5 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.def("kernel_hash_cpu", &kernel_hash_cpu);
   m.def("hash_query_cpu", &hash_query_cpu);
   m.def("count_cpu", &count_cpu);
+  m.def("print_convolution_forward_time_stats", &print_convolution_forward_time_stats);
 }

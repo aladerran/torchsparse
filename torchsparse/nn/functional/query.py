@@ -8,7 +8,7 @@ from torchsparse.utils import timing_decorator
 
 total_query_time = 0
 
-# @timing_decorator('total_query_time')
+@timing_decorator('total_query_time')
 def sphashquery(queries: torch.Tensor,
                 references: torch.Tensor) -> torch.Tensor:
     queries = queries.contiguous()

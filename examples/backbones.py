@@ -10,11 +10,6 @@ from torchsparse.utils import TimingManager
 import time
 import os
 
-def set_affinity(core_id):
-    os.sched_setaffinity(0, {core_id})
-
-set_affinity(0) # Set the affinity to core 0
-
 current_dir = os.path.dirname(os.path.realpath(__file__))
 output_dir = os.path.join(current_dir, 'output')
 
@@ -28,7 +23,9 @@ def main() -> None:
     # device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
     device = 'cpu'
 
-    for backbone in [SparseResNet21D, SparseResUNet42]:
+    # for backbone in [SparseResNet21D, SparseResUNet42]:
+    # for backbone in [SparseResNet21D]:
+    for backbone in [SparseResUNet42]:
         print(f'{backbone.__name__}:')
         model: nn.Module = backbone(in_channels=4, width_multiplier=1.0)
         model = model.to(device).eval()
@@ -63,6 +60,7 @@ def main() -> None:
 
         # print profiling info
         TimingManager.print_times()
+        TimingManager.print_backend_profiling_stats()
         TimingManager.reset_times()
 
 
