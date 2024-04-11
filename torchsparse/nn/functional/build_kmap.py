@@ -40,7 +40,7 @@ def build_kernel_map(_coords: torch.Tensor,
                    coords.max(0).values, kernel_size, stride, tensor_stride)
 
         nbmaps = out[0]
-        input_mask, output_mask = out[-2:]
+        # input_mask, output_mask = out[-2:]
         if len(out) == 4:
             return out
         else:
