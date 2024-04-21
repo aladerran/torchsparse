@@ -20,12 +20,12 @@ if not os.path.exists(output_dir):
 
 @torch.no_grad()
 def main() -> None:
-    # device = 'cuda:0'
-    device = 'cpu'
+    device = 'cuda:0'
+    # device = 'cpu'
     read_input = False
 
-    backbone = SparseResNet21D
-    # backbone = SparseResUNet42
+    # backbone = SparseResNet21D
+    backbone = SparseResUNet42
 
     print(f'{backbone.__name__}:')
     model: nn.Module = backbone(in_channels=4, width_multiplier=1.0)
@@ -37,8 +37,8 @@ def main() -> None:
         all_feats = torch.from_numpy(np.genfromtxt(f'{output_dir}/feats.csv', delimiter=',')).to(device)
         input = SparseTensor(coords=all_coords, feats=all_feats).to(device)
     else:
-        batch_sizes = 16
-        input_size, voxel_size = 500, 0.2
+        batch_sizes = 1
+        input_size, voxel_size = 1000, 0.2
         for batch_size in range(1, batch_sizes+1):
             inputs = np.random.uniform(-100, 100, size=(input_size, 4))
             pcs, feats = inputs[:, :3], inputs
@@ -60,27 +60,39 @@ def main() -> None:
         np.savetxt(f'{output_dir}/coords.csv', all_coords.cpu().numpy(), delimiter=',', fmt='%d')
         np.savetxt(f'{output_dir}/feats.csv', all_feats.cpu().numpy(), delimiter=',', fmt='%f')
 
-    input = SparseTensor(coords=all_coords, feats=all_feats).to(device)
+    warmup = []
+    test = []
 
+    # warm-up
+    for i in range (3):
+        TimingManager.reset_times()
+        input = SparseTensor(coords=all_coords, feats=all_feats).to(device)
+        warmup.append(model(input))
+
+    # synchronize & reset timers
+    TimingManager.reset_times()
+    torch.cuda.synchronize()
     start_time = time.perf_counter()
+    input = SparseTensor(coords=all_coords, feats=all_feats).to(device)
     # forward
     outputs = model(input)
+    torch.cuda.synchronize()
     end_time = time.perf_counter()
     print(f"Execution Time: {(end_time - start_time) * 1000} ms")
-
-    # export outputs
-    for k, output in enumerate(outputs):
-        np.savetxt(f'{output_dir}/out_coords_{backbone.__name__}.csv', output.coords.cpu().numpy(), delimiter=',', fmt='%d')
-        np.savetxt(f'{output_dir}/out_feats_{backbone.__name__}.csv', output.feats.cpu().numpy(), delimiter=',', fmt='%f')
-
     # print feature shapes
     for k, output in enumerate(outputs):
         print(f'output[{k}].F.shape = {output.feats.shape}')
-
     # print profiling info
     TimingManager.print_times()
-    TimingManager.print_backend_profiling_stats()
-    TimingManager.reset_times()
+    if device == "cpu":
+        TimingManager.print_backend_profiling_stats()
+    else:
+        print("GPU Kenrel Profiling NOT IMPLEMENTED...")
+
+    # # export outputs
+    # for k, output in enumerate(outputs):
+    #     np.savetxt(f'{output_dir}/out_coords_{backbone.__name__}.csv', output.coords.cpu().numpy(), delimiter=',', fmt='%d')
+    #     np.savetxt(f'{output_dir}/out_feats_{backbone.__name__}.csv', output.feats.cpu().numpy(), delimiter=',', fmt='%f')
 
 
 if __name__ == '__main__':

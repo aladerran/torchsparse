@@ -40,7 +40,7 @@ def build_kernel_map(_coords: torch.Tensor,
                    coords.max(0).values, kernel_size, stride, tensor_stride)
 
         nbmaps = out[0]
-        # input_mask, output_mask = out[-2:]
+        input_mask, output_mask = out[-2:]
         if len(out) == 4:
             return out
         else:
@@ -65,12 +65,12 @@ def build_kernel_map(_coords: torch.Tensor,
                                         + nbmaps[:, 1]]
         # important for build masks
         nbmaps = nbmaps.contiguous()
-        # input_mask, output_mask = torchsparse.backend.build_mask_from_kmap(
-        #     _coords.shape[0], coords.shape[0], nbmaps.int(), nbsizes.int())
+        input_mask, output_mask = torchsparse.backend.build_mask_from_kmap(
+            _coords.shape[0], coords.shape[0], nbmaps.int(), nbsizes.int())
 
         if any(s > 1 for s in stride):
-            # return nbmaps, nbsizes, coords, input_mask, output_mask
-            return nbmaps, nbsizes, coords
+            return nbmaps, nbsizes, coords, input_mask, output_mask
+            # return nbmaps, nbsizes, coords
         else:
-            # return nbmaps, nbsizes, input_mask, output_mask
-            return nbmaps, nbsizes
+            return nbmaps, nbsizes, input_mask, output_mask
+            # return nbmaps, nbsizes

@@ -67,8 +67,10 @@ def timing_decorator(action_name):
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
+            torch.cuda.synchronize()
             start_time = time.time()
             result = func(*args, **kwargs)
+            torch.cuda.synchronize()
             end_time = time.time()
             TimingManager.add_time(action_name, end_time - start_time)
             TimingManager.add_count(action_name) 
